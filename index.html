@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <link href='nprogress.css' rel='stylesheet' />
+    <style type="text/css">
+      body{
+        background: #0f1f40 url(http://h5demo.sinaapp.com/gtxorder/bg.jpg) top center no-repeat;
+      }
+      h1{
+        background:url(http://h5demo.sinaapp.com/gtxorder/logo.png) no-repeat;
+        width:280px;
+        height:45px;
+        margin:20px auto 0 auto;
+      }
+      #warp{
+        width:1000px;
+        margin: 0 auto;
+      }
+      #states path {
+        fill: #020e1c;
+        stroke: #0f1f40;
+      }
+
+      path.arc {
+        pointer-events: none;
+        fill: none;
+        stroke: #000;
+        display: none;
+      }
+
+      path.cell {
+        fill: none;
+        pointer-events: all;
+      }
+
+      circle {
+        fill:#fffff3;
+        stroke:#fff;
+        stroke-opacity: .3;
+      }
+    </style>
+    <script src='http://h5demo.sinaapp.com/gtxorder/jquery-1.10.js'></script>
+    <script src='http://h5demo.sinaapp.com/gtxorder/nprogress.js'></script>
+    <script src='http://h5demo.sinaapp.com/gtxorder/d3.min.js'></script>
+    <script src='http://h5demo.sinaapp.com/gtxorder/d3.jsonp.js'></script>
+    <script src='http://h5demo.sinaapp.com/gtxorder/d3.geo.js'></script>
+  </head>
+  <body>
+    <h1 style=""></h1>
+    <div id="warp"></div>
+
+    <script type="text/javascript">
+    //loading
+    NProgress.start();
+    $(window).load(function(){
+      NProgress.done();
+     }) 
+
+      var w = 1000,
+          h = 730;
+      var projection = d3.geo.azimuthal()
+      .origin([100, 31])
+      .scale(1150)
+      .translate([450, 480]);
+
+      var path = d3.geo.path()
+          .projection(projection);
+
+      var svg = d3.select("#warp").insert("svg:svg")
+          .attr("width", w)
+          .attr("height", h);
+
+      var states = svg.append("svg:g")
+          .attr("id", "states");
+
+      var circles = svg.append("svg:g")
+          .attr("id", "circles");
+
+      d3.json("china.json", function(collection) {
+        states.selectAll("path")
+          .data(collection.features)
+          .enter().append("svg:path")
+          .attr("d", path);
+      });
+
+      
+     
+     //格式化日期
+     Date.prototype.Format = function(fmt){ 
+          var o = { 
+            "M+" : this.getMonth()+1,                 //月份 
+            "d+" : this.getDate(),                    //日 
+            "h+" : this.getHours(),                   //小时 
+            "m+" : this.getMinutes(),                 //分 
+            "s+" : this.getSeconds(),                 //秒 
+            "q+" : Math.floor((this.getMonth()+3)/3), //季度 
+            "S"  : this.getMilliseconds()             //毫秒 
+          }; 
+          if(/(y+)/.test(fmt)) 
+            fmt=fmt.replace(RegExp.$1, (this.getFullYear()+"").substr(4 - RegExp.$1.length)); 
+          for(var k in o) 
+            if(new RegExp("("+ k +")").test(fmt)) 
+          fmt = fmt.replace(RegExp.$1, (RegExp.$1.length==1) ? (o[k]) : (("00"+ o[k]).substr((""+ o[k]).length))); 
+          return fmt; 
+        }
+      //获取某天的当前时间
+      function showDate(n, fmt) {
+          return new Date(new Date()-0+n*86400000).Format(fmt);
+        }
+
+     getCircle();     
+     setInterval(getCircle,180000);
+
+     function getCircle(){
+      
+        //js获取当时时间
+        var endTime = new Date().Format("yyyy-MM-dd hh:mm:ss"); 
+        //获取24小时之前的时间
+        //var startTime = showDate(-1, "yyyy-MM-dd hh:mm:ss");
+        //js获取当天零点时间
+        var startTime = new Date().Format("yyyy-MM-dd"); 
+
+        d3.jsonp("http://api.app.gongtianxia.com/services/channelorder/queryCountByCity?callback=d3.jsonp.foo&startTime="+startTime+"&endTime="+endTime, function(jsonp) {
+
+          var positions = [];
+          orders = jsonp.data.filter(function(order) {
+              var location = [+order.longitude, +order.latitude];
+              positions.push(projection(location));
+              return true;
+              
+          });   
+
+          console.log(jsonp.start+'已有'+jsonp.total+'个订单');
+          
+
+          circles.selectAll("circle")
+            .data(orders).enter().append("svg:circle")
+            .attr("cx", function(d, i) { return positions[i][0]; })
+            .attr("cy", function(d, i) { return positions[i][1]; })
+            .style('opacity', 0)
+            .style('stroke-width',function(d,i){
+                        if(d.num > 0 && d.num < 6){
+                          return 3
+                        }else if(d.num > 5 && d.num < 11){
+                          return 4
+                        }else if(d.num > 10 && d.num < 21 ){
+                          return 5
+                        }else if(d.num > 20 && d.num < 41){
+                          return 6
+                        }else if(d.num > 40 && d.num < 71){
+                          return 7
+                        }else if(d.num > 70){
+                          return 8
+                        }else{
+                          return d.mum+1
+                        }
+
+            })
+            .attr("r",function(d,i){
+                        if(d.num > 0 && d.num < 6){
+                          return 2
+                        }else if(d.num > 5 && d.num < 11){
+                          return 3
+                        }else if(d.num > 10 && d.num < 21 ){
+                          return 4
+                        }else if(d.num > 20 && d.num < 41){
+                          return 5
+                        }else if(d.num > 40 && d.num < 71){
+                          return 6
+                        }else if(d.num > 70){
+                          return 7
+                        }else{
+                          return d.mum
+                        }
+                    })
+            .on("mouseover", function(d, i) {console.log(d.address+'已有'+d.num+'个订单')});
+            randomFlash();
+        });
+     }
+    
+          
+    function randomFlash(){
+      circles.selectAll("circle")
+          .transition()
+          .duration(function(){return Math.random()*5000})
+          .style('opacity',.5)
+          .transition()
+          .delay(function(){return Math.random()*10000})
+          .duration(function(){return Math.random()*5000})
+          .style('opacity', 0)
+          .each("end",function(){randomFlash();});
+       } 
+
+    </script>
+  </body>
+</html>
